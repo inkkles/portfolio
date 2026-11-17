@@ -21,7 +21,7 @@ async function email(env, text) {
       headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: env.EMAIL_FROM || 'onboarding@resend.dev', to: env.EMAIL_TO, subject: 'Someone spoke on your site', text }),
     });
-    if (!r.ok) console.log('[email failed]', r.status, await r.text());
+    console.log(r.ok ? '[email sent]' : '[email failed]', r.status, await r.text());
   } catch (e) { console.log('[email failed]', e.message); }
 }
 
