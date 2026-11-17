@@ -243,10 +243,12 @@ function toHex(c) { // any CSS colour name / hex -> '#rrggbb', or null
   return /^#[0-9a-f]{6}$/.test(g.fillStyle) ? g.fillStyle : null;
 }
 function startDraw(c) {
-  const hex = toHex(c);
+  const erase = String(c).trim().toLowerCase() === 'erase'; // "draw erase" rubs graffiti out
+  const hex = erase ? 'erase' : toHex(c);
   if (!hex) return false;
   closeUI();
   color = hex; mode = 'draw'; hover = null; cv.style.cursor = 'crosshair'; $('#eject').hidden = false;
+  if (erase) return true;
   recent = [hex, ...recent.filter(x => x !== hex)].slice(0, 3);
   try { localStorage.recent = JSON.stringify(recent); } catch (e) {}
   return true;
@@ -258,7 +260,9 @@ function stopDraw() {
 }
 function paint(st) { // draw one stroke onto the shared ink layer (3 times so it wraps at the seam)
   const p = st.p, base = Math.floor(p[0] / WW) * WW;
-  ik.strokeStyle = st.c; ik.lineWidth = st.w; ik.lineCap = ik.lineJoin = 'round';
+  const erase = st.c === 'erase';
+  ik.globalCompositeOperation = erase ? 'destination-out' : 'source-over'; // erasing removes ink instead of adding it
+  ik.strokeStyle = erase ? '#000' : st.c; ik.lineWidth = st.w; ik.lineCap = ik.lineJoin = 'round';
   for (const off of [-WW, 0, WW]) {
     ik.beginPath(); ik.moveTo(p[0] - base + off, p[1]);
     for (let i = 2; i < p.length; i += 2) ik.lineTo(p[i] - base + off, p[i + 1]);
@@ -300,7 +304,8 @@ function connect() {
     else if (m.t === 'stroke') paint(m);
     else if (m.t === 'hello') heard(m.text);
     else if (m.t === 'clear') wipeInk();
-    else if (m.t === 'denied') print('wipe: wrong password');
+    else if (m.t === 'denied') print('wrong password');
+    else if (m.t === 'note') print(m.text);
   };
   ws.onclose = () => { setTimeout(connect, retry); retry = Math.min(retry * 2, 30000); };
 }
@@ -454,7 +459,9 @@ const cmds = {
     print('commands: help echo get set unset clear history date whoami pwd ls exit');
     print('  phone <text>   say something to everyone here');
     print('  draw <color>   draw on the world (a color name or #rrggbb)');
+    print('  draw erase     rub graffiti out');
     print('  wipe <password>  clear all graffiti, for everyone');
+    print('  rollback <password> <30m|2h|1d>  put the graffiti back to how it was that long ago');
     print('  x=5   echo $x  echo $((RANDOM % 6 + 1))');
     print('~ site variables: ' + Object.keys(site).join(' ') + '   (get overlay / overlay = 0)');
   },
@@ -473,6 +480,12 @@ const cmds = {
   wipe: a => {
     if (!a.length) return print('usage: wipe <password>');
     if (!send({ t: 'clear', pw: a.join(' ') })) print('wipe: not connected');
+  },
+  rollback: a => { // rollback <password> <how long ago>: 30 or 30m = minutes, 2h = hours, 1d = days
+    const m = /^(\d+(?:\.\d+)?)([mhd]?)$/.exec(a[a.length - 1] || '');
+    if (a.length < 2 || !m) return print('usage: rollback <password> <how long ago: 30m, 2h, 1d>');
+    const ago = m[1] * { m: 60, h: 3600, d: 86400 }[m[2] || 'm'];
+    if (!send({ t: 'rollback', pw: a.slice(0, -1).join(' '), ago })) print('rollback: not connected');
   },
   draw: a => { if (!startDraw(a.join(' '))) print('draw: not a color: ' + a.join(' ')); },
 };
