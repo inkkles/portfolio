@@ -1,0 +1,54 @@
+:root {
+  --o: #ff8c00; /* console orange */
+  --mono: Consolas, "Cascadia Mono", Menlo, "DejaVu Sans Mono", monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; height: 100%; overflow: hidden; background: #808080; overscroll-behavior: none; }
+body { font: 16px/1.3 var(--mono); color: var(--o); }
+
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#world { touch-action: none; cursor: grab; }
+#boot { z-index: 9; }
+
+/* The darkening behind any console UI */
+#shade { position: fixed; inset: 0; z-index: 2; }
+
+/* Text buttons: padding bigger than the text, bold on hover */
+button { all: unset; }
+.btn, .sw { display: inline-block; }
+.btn { padding: 1.2em 1.6em; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.btn:hover, .btn:focus-visible { font-weight: bold; }
+
+.hud { position: fixed; top: 0; z-index: 4; font-size: 20px; text-shadow: 0 0 4px #000, 0 0 4px #000; }
+#b-term { left: 0; }
+#b-phone { right: 0; }
+#eject { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); z-index: 4; font-size: 64px; padding: .4em 1em; text-shadow: 0 0 6px #000; }
+
+.panel { position: fixed; z-index: 3; }
+
+#term { inset: 5em 1em 1em; font-size: 12px; overflow-y: auto; }
+#out div { white-space: pre-wrap; word-break: break-word; min-height: 1.3em; }
+#line { display: flex; gap: .6em; }
+#cmd { flex: 1; min-width: 0; caret-color: var(--o); }
+input, textarea { all: unset; font: inherit; color: inherit; }
+
+#phone, #color { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(90vw, 32em); text-align: center; }
+#msg { display: block; width: 100%; margin: 1em 0 .3em; padding: .6em; border: 1px solid var(--o); text-align: left; white-space: pre-wrap; word-break: break-word; }
+#count { text-align: right; font-size: 12px; }
+
+.sw { width: 3em; height: 3em; margin: .5em; cursor: pointer; border: 1px solid var(--o); vertical-align: middle; }
+.sw.dotted { border: 2px dotted var(--o); }
+#picker label { display: flex; gap: .8em; align-items: center; margin: .6em 0; }
+#picker input { all: revert; flex: 1; accent-color: var(--o); }
+#pv { display: inline-block; width: 1.2em; height: 1.2em; border: 1px solid var(--o); vertical-align: middle; }
+
+/* "overlay: 0.5" flash, bottom right */
+#flash { position: fixed; right: 1em; bottom: 1em; z-index: 5; opacity: 0; pointer-events: none; }
+#flash.go { animation: flash 1.6s; }
+@keyframes flash { 0% { opacity: 1; } 10% { opacity: .2; } 20% { opacity: 1; } 30% { opacity: .3; } 40% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Messages flying across the screen */
+.danmaku { position: fixed; left: 100%; z-index: 6; white-space: nowrap; pointer-events: none; font-size: 20px; text-shadow: 0 0 3px #000, 0 0 3px #000; animation: fly linear forwards; }
+@keyframes fly { to { transform: translateX(calc(-100vw - 100%)); } }

@@ -1,0 +1,20 @@
+# Cloudflare settings. The site files are in docs/, the shared server is worker/index.js.
+name = "portfolio"
+main = "worker/index.js"
+compatibility_date = "2025-06-01"
+
+[assets]
+directory = "./docs"
+binding = "ASSETS"
+
+[[durable_objects.bindings]]
+name = "WORLD"
+class_name = "World"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["World"]
+
+[vars]
+# Other addresses whose pages are allowed to connect (comma separated)
+ORIGINS = "https://inkkles.github.io"

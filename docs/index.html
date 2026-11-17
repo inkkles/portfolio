@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Portfolio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="world"></canvas>
+  <div id="shade" hidden></div>
+
+  <!-- >_ terminal -->
+  <div id="term" class="panel" hidden>
+    <div id="out"></div>
+    <label id="line">$ <input id="cmd" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+  </div>
+
+  <!-- phone -->
+  <div id="phone" class="panel" hidden>
+    <div data-t>☄🖁 Speak</div>
+    <textarea id="msg" maxlength="255" rows="5"></textarea>
+    <div id="count">0/255</div>
+    <button class="btn" id="speak" data-t>SPEAK YOUR MIND</button><br>
+    <button class="btn" id="ring" data-t>🖁 Ring Mauricio</button>
+  </div>
+
+  <!-- drawing tool -->
+  <div id="color" class="panel" hidden>
+    <div id="recent"></div>
+    <div id="picker" hidden>
+      <label>R <input type="range" min="0" max="255"></label>
+      <label>G <input type="range" min="0" max="255"></label>
+      <label>B <input type="range" min="0" max="255"></label>
+      <div><span id="pv"></span> <span id="hex"></span></div>
+      <button class="btn" id="eye">eyedropper</button>
+      <button class="btn" id="ok">confirm</button>
+    </div>
+  </div>
+
+  <button class="btn hud" id="b-term">&gt;_</button>
+  <button class="btn hud" id="b-phone">🖁</button>
+  <button class="btn" id="eject" hidden>⏏</button>
+  <div id="flash"></div>
+  <canvas id="boot"></canvas>
+
+  <script src="world.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
