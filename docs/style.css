@@ -34,12 +34,18 @@ button { all: unset; }
 #cmd { flex: 1; min-width: 0; caret-color: var(--o); }
 input, textarea { all: unset; font: inherit; color: inherit; }
 
-#phone, #color { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(90vw, 32em); text-align: center; }
+#phone { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(90vw, 32em); text-align: center; }
+/* Art box: sits on the bottom edge, colour picker opens above the swatches */
+#color { left: 50%; bottom: 0; transform: translateX(-50%); width: min(90vw, 32em); text-align: center; display: flex; flex-direction: column-reverse; }
+#recent { padding: 1rem 0 .5rem; }
 #msg { display: block; width: 100%; margin: 1em 0 .3em; padding: .6em; border: 1px solid var(--o); text-align: left; white-space: pre-wrap; word-break: break-word; }
 #count { text-align: right; font-size: 12px; }
 
-.sw { width: 3em; height: 3em; margin: .5em; cursor: pointer; border: 1px solid var(--o); vertical-align: middle; }
+.sw { width: 3rem; height: 3rem; margin: .5rem; cursor: pointer; border: 1px solid var(--o); vertical-align: middle; transition: transform .15s; }
+.sw:hover, .sw:focus-visible { transform: translateY(-.75rem); } /* swatches rise when hovered */
 .sw.dotted { border: 2px dotted var(--o); }
+.sw.erase { font-size: 12px; line-height: 3rem; text-align: center; }
+.sw.erase:hover { font-weight: bold; }
 #picker label { display: flex; gap: .8em; align-items: center; margin: .6em 0; }
 #picker input { all: revert; flex: 1; accent-color: var(--o); }
 #pv { display: inline-block; width: 1.2em; height: 1.2em; border: 1px solid var(--o); vertical-align: middle; }

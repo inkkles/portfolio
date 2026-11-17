@@ -397,6 +397,9 @@ function showRecent() {
   d.className = 'sw dotted'; d.title = 'pick a colour';
   d.onclick = () => { $('#picker').hidden = false; setRGB(recent[0]); };
   r.append(d);
+  const e = document.createElement('button');
+  e.className = 'sw erase'; e.textContent = 'erase'; e.onclick = () => startDraw('erase');
+  r.append(e);
 }
 $('#eye').onclick = () => { $('#color').hidden = shade.hidden = true; mode = 'pick'; cv.style.cursor = 'crosshair'; };
 $('#ok').onclick = () => startDraw(picked());
