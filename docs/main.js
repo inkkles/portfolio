@@ -51,9 +51,10 @@ const ink = document.createElement('canvas'), ik = ink.getContext('2d'); // ever
 const cache = {};
 const sheet = src => cache[src] || (cache[src] = Object.assign(new Image(), { src }));
 const bg = sheet(W.image);
+for (const t of W.things) { if (t.sheet) sheet(t.sheet); if (t.talkSheet) sheet(t.talkSheet); } // load every sheet up front
 let WW = 4096, WH = 1024, vw = 1, vh = 1, dpr = 1;
-const cam = { x: W.start, y: W.margin }; // x = world x at screen center, y = world y at screen top
-const scale = () => vh / (WH - 2 * W.margin);
+const cam = { x: W.stops[0], y: 0 }; // x = world x at screen center, y = world y at screen top
+const scale = () => Math.min(vh / WH, vw / W.view); // whole image height fits, and at least `view` wide
 const toWorld = (px, py) => { const s = scale(); return [cam.x + (px - vw / 2) / s, cam.y + py / s]; };
 const near = (a, b) => mod(a - b + WW / 2, WW) - WW / 2; // shortest signed distance around the loop
 
@@ -107,7 +108,7 @@ function advance() {
 }
 function updateGuy(t) {
   if (!guy) return;
-  const on = Math.abs(near(guy.x, cam.x)) < Math.max(vw / scale() / 2 - guy.size / 4, guy.size / 4);
+  const on = !turn && Math.abs(near(guy.x, cam.x)) < guy.size / 2; // facing him, not mid-turn
   if (on && !guySeen && !ui) { say(ringing ? D.ring : D.lines, ringing); ringing = false; }
   if (!on) dlg = null;
   guySeen = on;
@@ -149,9 +150,9 @@ function frame(t) {
   if (turn) {
     const p = Math.min(1, (t - turn.t0) / turn.dur);
     cam.x = turn.from + turn.by * (1 - Math.pow(1 - p, 3));
-    if (p >= 1) turn = null;
+    if (p >= 1) { cam.x = mod(cam.x, WW); turn = null; }
   }
-  cam.y = clamp(cam.y, 0, Math.max(0, WH - vh / s));
+  cam.y = (WH - vh / s) / 2; // no vertical panning: the image is always centred top to bottom
   updateGuy(t);
   const left = mod(cam.x - viewW / 2, WW);
   const at = ox => ctx.setTransform(s * dpr, 0, 0, s * dpr, ox * s * dpr, -cam.y * s * dpr);
@@ -175,14 +176,23 @@ const wake = () => { try { ac = ac || new (window.AudioContext || window.webkitA
 addEventListener('pointerdown', wake, true); addEventListener('keydown', wake, true);
 
 /* ------------------------------------------------------------------ input */
-function pan(dx, dy) {
-  if (!shade.hidden) return; // no moving while a console UI is open
-  const s = scale(); turn = null;
-  cam.x += dx / s; cam.y += dy / s;
+// The camera always faces one of WORLD.stops. dir +1 turns right, -1 left, 0 the short way.
+let facing = 0;
+function face(i, dir) {
+  if (!shade.hidden || !W.stops.length) return; // no turning while a console UI is open
+  facing = mod(i, W.stops.length);
+  const x = W.stops[facing];
+  const by = dir > 0 ? mod(x - cam.x, WW) : dir < 0 ? -mod(cam.x - x, WW) : near(x, cam.x);
+  turn = { from: cam.x, by, t0: performance.now(), dur: W.turn };
 }
-const ptrs = new Map(); let moved = 0;
+const step = dir => face(facing + dir, dir);
+$('#b-left').onclick = () => step(-1);
+$('#b-right').onclick = () => step(1);
+
+const ptrs = new Map(); let moved = 0, sx = 0, sy = 0;
 cv.addEventListener('pointerdown', e => {
-  cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
+  cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (ptrs.size === 1) { moved = 0; sx = e.clientX; sy = e.clientY; }
   if (stroke) endStroke();
   else if (mode === 'draw' && ptrs.size === 1) startStroke(e);
 });
@@ -193,24 +203,31 @@ cv.addEventListener('pointermove', e => {
     cv.style.cursor = mode ? 'crosshair' : hover ? 'pointer' : '';
     return;
   }
-  const dx = e.clientX - p[0], dy = e.clientY - p[1]; p[0] = e.clientX; p[1] = e.clientY;
-  moved += Math.abs(dx) + Math.abs(dy);
-  if (stroke) addPoint(e); else if (mode !== 'draw' || ptrs.size > 1) pan(-dx / ptrs.size, -dy / ptrs.size);
+  moved += Math.abs(e.clientX - p[0]) + Math.abs(e.clientY - p[1]); p[0] = e.clientX; p[1] = e.clientY;
+  if (stroke) addPoint(e);
 });
 const up = e => {
   if (!ptrs.delete(e.pointerId)) return;
-  if (stroke) endStroke(); else if (moved < 6 && mode !== 'draw') click(e);
+  if (stroke) return endStroke();
+  if (mode === 'draw' || ptrs.size) return;
+  const dx = e.clientX - sx, dy = e.clientY - sy;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1); // swipe left = turn right
+  else if (moved < 6) click(e);
 };
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-addEventListener('wheel', e => {
+let wheel = 0, wheelT = 0; // a sideways trackpad swipe turns once
+cv.addEventListener('wheel', e => {
   e.preventDefault();
-  if (e.shiftKey) pan(e.deltaY + e.deltaX, 0); else pan(e.deltaX, e.deltaY);
+  const now = performance.now();
+  if (now - wheelT < 400) { wheelT = now; return; } // ignore the rest of the same swipe
+  wheel += e.deltaX || (e.shiftKey ? e.deltaY : 0);
+  if (Math.abs(wheel) > 60) { step(Math.sign(wheel)); wheel = 0; wheelT = now; }
 }, { passive: false });
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeUI(); stopDraw(); }
-  if (ui) return;
-  const k = { ArrowLeft: [-60, 0], ArrowRight: [60, 0], ArrowUp: [0, -60], ArrowDown: [0, 60] }[e.key];
-  if (k) pan(...k);
+  if (ui || e.repeat) return;
+  if (e.key === 'ArrowLeft') step(-1);
+  if (e.key === 'ArrowRight') step(1);
 });
 
 function click(e) {
@@ -377,7 +394,8 @@ $('#speak').onclick = () => {
 $('#ring').onclick = () => { // back to the world, spun round to face the character
   closeUI(); if (!guy) return;
   dlg = null; guySeen = false; ringing = true;
-  turn = { from: cam.x, by: near(guy.x, cam.x), t0: performance.now(), dur: 1400 };
+  const i = W.stops.reduce((b, x, k) => Math.abs(near(x, guy.x)) < Math.abs(near(W.stops[b], guy.x)) ? k : b, 0);
+  face(i, 0); // the stop closest to him, turning the short way
 };
 
 /* drawing tool: 3 recent colours + a dotted box that opens the RGB picker */
